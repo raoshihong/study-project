@@ -1,0 +1,51 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <!-- 创建job -->
+    <bean id="jobDetail" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <!-- 指定job的name -->
+        <property name="name" value="jb01" />
+        <!-- 指定job的分组 -->
+        <property name="group" value="gp01" />
+        <!-- 指定job的class -->
+        <property name="jobClass" value="com.rao.study.quartz.spring.SpringJob" />
+        <!-- 必须设置为true，如果为false，当没有活动的触发器与之关联时会在调度器中会删除该任务  -->
+        <property name="durability" value="true" />
+        <!-- 当Quartz服务被终止后，再次启动或者集群中的其他机器接受任务时候会尝试恢复之前失败的任务 -->
+        <property name="requestsRecovery" value="true" />
+        <!-- 指定job的数据 -->
+        <property name="jobDataAsMap">
+            <map>
+                <entry key="card" value="12312312" />
+                <entry key="name" value="ffff" />
+            </map>
+        </property>
+    </bean>
+
+    <!-- 创建一个trigger -->
+    <bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <!-- trigger的name -->
+        <property name="name" value="t1"/>
+        <property name="group" value="tg1" />
+        <property name="cronExpression" value="*/3 * * * * ?" />
+        <!-- 将trigger与job绑定 -->
+        <property name="jobDetail" ref="jobDetail"/>
+    </bean>
+
+    <!-- 创建调度器 -->
+    <bean id="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <!-- 指定trigger -->
+        <property name="triggers">
+            <array>
+                <ref bean="cronTrigger" />
+            </array>
+        </property>
+        <!-- 指定quartz.properties -->
+        <property name="configLocation" value="classpath:/quartz.properties" />
+        <!-- 设置spring的上线文 -->
+        <property name="applicationContextSchedulerContextKey" value="applicationContextKey" />
+    </bean>
+
+</beans>

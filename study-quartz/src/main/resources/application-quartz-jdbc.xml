@@ -1,0 +1,110 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <bean id="druidDataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="url" value="jdbc:mysql://localhost:3306/myquartz" />
+        <property name="username" value="root" />
+        <property name="password" value="123456" />
+        <property name="driverClassName" value="org.gjt.mm.mysql.Driver" />
+        <!-- 配置初始化大小、最小、最大 -->
+        <property name="initialSize" value="5" />
+        <property name="minIdle" value="5" />
+        <property name="maxActive" value="100" />
+
+        <!-- 配置获取连接等待超时的时间 -->
+        <property name="maxWait" value="60000" />
+
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000" />
+
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="300000" />
+
+        <property name="validationQuery" value="SELECT 'x'" />
+        <property name="testWhileIdle" value="true" />
+        <property name="testOnBorrow" value="false" />
+        <property name="testOnReturn" value="false" />
+
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+        <property name="poolPreparedStatements" value="false" />
+        <property name="maxPoolPreparedStatementPerConnectionSize" value="20" />
+
+        <!-- 配置监控统计拦截的filters -->
+        <property name="filters" value="stat,wall" />
+
+    </bean>
+
+    <!-- 创建job -->
+    <bean id="jobDetail" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <!-- 指定job的name -->
+        <property name="name" value="jb01" />
+        <!-- 指定job的分组 -->
+        <property name="group" value="gp01" />
+        <!-- 指定job的class -->
+        <property name="jobClass" value="com.rao.study.quartz.mysql.MySQLJob" />
+        <!-- druiability表示trigger没有了,job是否需要保留,即job持久化 -->
+        <property name="durability" value="true" />
+        <!-- 指定job的数据 -->
+        <property name="jobDataAsMap">
+            <map>
+                <entry key="card" value="12312312" />
+                <entry key="name" value="ffff" />
+            </map>
+        </property>
+    </bean>
+
+    <!-- 创建一个trigger -->
+    <bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <!-- trigger的name -->
+        <property name="name" value="t1"/>
+        <property name="group" value="tg1" />
+        <property name="cronExpression" value="*/2 * * * * ? *" />
+        <!-- 将trigger与job绑定 -->
+        <property name="jobDetail" ref="jobDetail"/>
+    </bean>
+
+    <!-- 创建调度器 -->
+    <bean id="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <!-- 指定trigger -->
+        <property name="triggers">
+            <list>
+                <ref bean="cronTrigger" />
+            </list>
+        </property>
+        <!-- 指定quartz.properties -->
+<!--        <property name="configLocation" value="classpath:/quartz.properties" />-->
+        <!-- 可以使用上面的方式，也可以使用下面的方式指定属性 -->
+        <property name="quartzProperties">
+            <value>
+                #指定调度的实例名称,不是类全路径名,可以任意写
+                org.quartz.scheduler.instanceName = myScheduler
+                org.quartz.scheduler.instanceId = AUTO
+                org.quartz.scheduler.makeSchedulerThreadDaemon = true
+                org.quartz.threadPool.class = org.quartz.simpl.SimpleThreadPool
+                org.quartz.threadPool.threadCount=50
+                org.quartz.threadPool.threadPriority=5
+
+                #============================================================================
+                # Configure JobStore
+                #============================================================================
+
+                # 指定使用持久化的方式
+                # org.quartz.jobStore.class=org.quartz.simpl.RAMJobStore
+                 org.quartz.jobStore.class = org.quartz.impl.jdbcjobstore.JobStoreTX
+                 org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+                # 指定表的前缀
+                 org.quartz.jobStore.tablePrefix = QRTZ_
+                 org.quartz.jobStore.isClustered = true
+                 org.quartz.jobStore.misfireThreshold = 60000
+                # org.quartz.jobStore.clusterCheckinInterval = 5000
+                 org.quartz.jobStore.dataSource = druidDataSource
+
+            </value>
+        </property>
+        <!-- 指定数据源 -->
+        <property name="dataSource" ref="druidDataSource" />
+    </bean>
+
+</beans>
